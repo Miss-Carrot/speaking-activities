@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raffle Lottery Grammar Quiz</title>
+   <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#fbbf24',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+        }
+        
+        /* Glowing effect for Secret Gold Balls */
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 15px #fbbf24, 0 0 30px #f59e0b, inset 0 0 10px #fef08a;
+            }
+            50% {
+                box-shadow: 0 0 25px #fbbf24, 0 0 50px #d97706, inset 0 0 15px #ffffff;
+            }
+        }
+        .secret-glowing-ball {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        /* 3D Glass Sphere styling for the Canvas container */
+        .raffle-sphere-shadow {
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Input auto-expansion mirror */
+        #textWidthMirror {
+            visibility: hidden;
+            position: absolute;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- Header -->
+    <header class="py-4 text-center border-b border-slate-800 bg-slate-950/60 backdrop-blur-md">
+        <h1 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 tracking-tight">
+            RAFFLE LOTTERY GRAMMAR QUIZ
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1 font-medium">Participle Clause Practice & Riddle Challenges</p>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col items-center justify-center gap-6">
+
+        <!-- Question Display Card (POSITIONED ABOVE THE RAFFLE MACHINE) -->
+        <div id="questionCard" class="hidden w-full bg-slate-900/90 border-2 border-slate-700/80 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-lg flex-col gap-4 relative transition-all duration-300">
+            <!-- Header Badges -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                    <span id="cardBallBadge" class="w-10 h-10 rounded-full flex items-center justify-center font-black text-slate-950 text-lg shadow-md border-2 border-white/20">
+                        1
+                    </span>
+                    <h2 id="questionTitle" class="text-lg sm:text-xl font-bold text-amber-300">
+                        Question #1
+                    </h2>
+                </div>
+                <div class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    Active Question
+                </div>
+            </div>
+
+            <!-- Original Sentence Context Box (Hidden for secret questions) -->
+            <div id="originalSentenceBox" class="bg-slate-950/60 rounded-xl p-4 border border-slate-800">
+                <div class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-1">Original Sentence</div>
+                <p id="questionPrompt" class="text-base sm:text-lg font-medium text-slate-200 leading-relaxed"></p>
+            </div>
+
+            <!-- Paraphrase Fill-in-the-Blank Input Area -->
+            <div>
+                <label id="instructionLabel" class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">
+                    Paraphrase the bold part into a participle / participle clause
+                </label>
+
+                <div class="bg-slate-950/80 border-2 border-slate-700 rounded-2xl p-4 sm:p-5 text-slate-100 shadow-inner">
+                    <!-- Hidden mirror span to calculate precise text width for smooth dynamic expansion -->
+                    <span id="textWidthMirror" class="font-sans text-base sm:text-lg font-bold"></span>
+
+                    <div class="flex flex-wrap items-baseline gap-1.5 text-base sm:text-lg font-sans">
+                        <!-- Secret Verb Hint in Brackets -->
+                        <span id="secretVerbHint" class="hidden text-amber-400 font-extrabold select-none mr-1"></span>
+
+                        <!-- Clean Auto-Expanding Inline Input -->
+                        <input type="text" id="userAnswerInput" placeholder="..." 
+                               class="bg-slate-900/90 border-b-2 border-amber-400 focus:border-amber-300 px-1.5 py-0.5 text-amber-300 font-bold outline-none transition-[border-color] shadow-inner placeholder-amber-500/50 text-base sm:text-lg font-sans inline-block"
+                               style="width: 3rem; min-width: 3rem;"
+                               autocomplete="off" oninput="adjustInputWidth()" onkeydown="if(event.key==='Enter') checkAnswer()">
+
+                        <!-- Remaining Sentence Text -->
+                        <span id="remainingSentenceText" class="text-slate-200 font-medium leading-relaxed">
+                            <!-- Populated dynamically -->
+                        </span>
+                    </div>
+
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="checkAnswer()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold px-6 py-2 rounded-xl text-sm transition-all shadow-lg hover:shadow-amber-500/20">
+                            Submit Answer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Message -->
+            <div id="feedbackContainer" class="hidden rounded-xl p-3 text-center text-sm font-semibold transition-all"></div>
+
+            <!-- Riddle Answer Revealer (Exclusive to 5 Secret Golden Questions) -->
+            <div id="riddleAnswerSection" class="hidden border-t border-slate-800 pt-3 mt-1 flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Riddle Solution:</span>
+                    <button id="toggleRiddleBtn" onclick="toggleRiddleAnswer()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all">
+                        Show Answer
+                    </button>
+                </div>
+                <div id="riddleAnswerText" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-200 text-sm font-medium"></div>
+            </div>
+
+            <!-- Discussion & Elimination Phase -->
+            <div id="discussionSection" class="hidden border-t border-slate-800 pt-4 flex-col gap-3">
+                <div class="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">Discussion Phase</span>
+                    <p class="text-sm sm:text-base text-slate-200 font-medium">Great! Now discuss the question with your peers before eliminating it from the raffle machine.</p>
+                </div>
+                <div class="flex justify-end">
+                    <button onclick="proceedAndEliminate()" class="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20">
+                        Proceed & Eliminate Question
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D Raffle Machine (Canvas Sphere) -->
+        <div class="flex flex-col items-center justify-center relative w-full max-w-md">
+            <div class="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full border-4 border-slate-700/80 bg-slate-950/40 raffle-sphere-shadow overflow-hidden backdrop-blur-sm">
+                <!-- Inner Glass Highlight Reflection -->
+                <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-white/20 pointer-events-none z-10"></div>
+                <canvas id="raffleCanvas" width="320" height="320" class="w-full h-full block relative z-0"></canvas>
+            </div>
+            
+            <!-- Machine Stand -->
+            <div class="w-48 h-6 bg-slate-800 rounded-b-2xl border-t-2 border-slate-600 shadow-xl flex items-center justify-center">
+                <div class="w-16 h-2 bg-slate-950 rounded-full"></div>
+            </div>
+
+            <!-- Spin Controls -->
+            <div class="mt-6 flex flex-col items-center gap-2">
+                <button id="spinBtn" onclick="spinRaffle()" class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 active:scale-95 text-slate-950 font-black text-lg sm:text-xl px-10 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 transition-all border border-amber-300 disabled:opacity-50 disabled:pointer-events-none">
+                    SPIN
+                </button>
+                <span id="remainingCount" class="text-xs font-semibold text-slate-400">Remaining Questions: 25 / 25</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-3 text-center text-xs text-slate-400 border-t border-slate-900">
+        Raffle Lottery Grammar Quiz &bull; Belarus & General Participle Clauses
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // --- 25 QUESTIONS (20 STANDARD + 5 SECRET GOLDEN RIDDLE BALLS) ---
+        const INITIAL_QUESTION_POOL = [
+            // Standard Questions (1 - 20)
+            {
+                id: 1,
+                isSecret: false,
+                color: '#ef4444',
+                original: "Since you are from Belarus, what part of this country would you recommend tourists to visit?",
+                bracketed: "Since you are",
+                remainingText: "from Belarus, what part of this country would you recommend tourists to visit?",
+                acceptedAnswers: ["Being", "Coming"]
+            },
+            {
+                id: 2,
+                isSecret: false,
+                color: '#f97316',
+                original: "You’ve been studying online for a while now. What do you think of remote learning?",
+                bracketed: "You’ve been studying",
+                remainingText: "online for a while now, what do you think of remote learning?",
+                acceptedAnswers: ["Having studied", "Having been studying"]
+            },
+            {
+                id: 3,
+                isSecret: false,
+                color: '#10b981',
+                original: "As you have studied English as a foreign language for a number of years, what advice would you give to a beginner?",
+                bracketed: "As you have studied",
+                remainingText: "English as a foreign language for a number of years, what advice would you give to a beginner?",
+                acceptedAnswers: ["Having studied", "Having been studying"]
+            },
+            {
+                id: 4,
+                isSecret: false,
+                color: '#06b6d4',
+                original: "As a person who has been taught by many teachers, what qualities make someone truly inspiring?",
+                bracketed: "As a person who has been taught",
+                remainingText: "by many teachers, what qualities make someone truly inspiring?",
+                acceptedAnswers: ["Having been taught"]
+            },
+            {
+                id: 5,
+                isSecret: false,
+                color: '#3b82f6',
+                original: "As the younger sibling/an only child/older sibling, are there any benefits to this position in the family?",
+                bracketed: "As",
+                remainingText: "the younger sibling/an only child/older sibling, are there any benefits to this position in the family?",
+                acceptedAnswers: ["Being"]
+            },
+            {
+                id: 6,
+                isSecret: false,
+                color: '#8b5cf6',
+                original: "After growing up in [X] city, would you say it is a good place for children?",
+                bracketed: "After growing up",
+                remainingText: "in [X] city, would you say it is a good place for children?",
+                acceptedAnswers: ["Having grown up"]
+            },
+            {
+                id: 7,
+                isSecret: false,
+                color: '#ec4899',
+                original: "Since you have been working in the IT field for a while now, what pros and cons can you point out?",
+                bracketed: "Since you have been working",
+                remainingText: "in the IT field for a while now, what pros and cons can you point out?",
+                acceptedAnswers: ["Having worked"]
+            },
+            {
+                id: 8,
+                isSecret: false,
+                color: '#f43f5e',
+                original: "As you are a native Russian speaker, what tips would you give someone who was interested in learning this language?",
+                bracketed: "As you are",
+                remainingText: "a native Russian speaker, what tips would you give someone who was interested in learning this language?",
+                acceptedAnswers: ["Being"]
+            },
+            {
+                id: 9,
+                isSecret: false,
+                color: '#84cc16',
+                original: "If you were offered an opportunity to relocate now with all the expenses covered, would you accept the offer? Why / Why not?",
+                bracketed: "If you were offered",
+                remainingText: "an opportunity to relocate now with all the expenses covered, would you accept the offer? Why / Why not?",
+                acceptedAnswers: ["Having been offered"]
+            },
+            {
+                id: 10,
+                isSecret: false,
+                color: '#14b8a6',
+                original: "If you were given a chance to choose another major at university, what would you go for? Why?",
+                bracketed: "If you were given",
+                remainingText: "a chance to choose another major at university, what would you go for? Why?",
+                acceptedAnswers: ["Given", "Having been given"]
+            },
+            {
+                id: 11,
+                isSecret: false,
+                color: '#6366f1',
+                original: "As a fan of [band / singer / writer / artist / etc.] what can you name as their most outstanding features?",
+                bracketed: "As a fan of",
+                remainingText: "a fan of [band / singer / writer / artist / etc.], what can you name as their most outstanding features?",
+                acceptedAnswers: ["Being"]
+            },
+            {
+                id: 12,
+                isSecret: false,
+                color: '#a855f7',
+                original: "If you were invited to give a short talk to teenagers about life choices, what single piece of advice would you emphasise?",
+                bracketed: "If you were invited",
+                remainingText: "to give a short talk to teenagers about life choices, what single piece of advice would you emphasise?",
+                acceptedAnswers: ["Having been invited", "Invited"]
+            },
+            {
+                id: 13,
+                isSecret: false,
+                color: '#d946ef',
+                original: "As you’ve made both good and bad decisions in life, how do you usually decide what to do when the choice is not clear?",
+                bracketed: "As you’ve made",
+                remainingText: "both good and bad decisions in life, how do you usually decide what to do when the choice is not clear?",
+                acceptedAnswers: ["Having made"]
+            },
+            {
+                id: 14,
+                isSecret: false,
+                color: '#0284c7',
+                original: "Since you spend a large part of the day indoors, how do you make sure you still feel connected to the outside world?",
+                bracketed: "Since you spend",
+                remainingText: "a large part of the day indoors, how do you make sure you still feel connected to the outside world?",
+                acceptedAnswers: ["Spending", "Having spent"]
+            },
+            {
+                id: 15,
+                isSecret: false,
+                color: '#059669',
+                original: "As we live in an increasingly digital world, do you think people are becoming more connected or more isolated?",
+                bracketed: "As we live",
+                remainingText: "in an increasingly digital world, do you think people are becoming more connected or more isolated?",
+                acceptedAnswers: ["Living"]
+            },
+            {
+                id: 16,
+                isSecret: false,
+                color: '#e11d48',
+                original: "When you are surrounded by people with different opinions, do you find it easy to stand up for your own beliefs?",
+                bracketed: "When you are surrounded",
+                remainingText: "by people with different opinions, do you find it easy to stand up for your own beliefs?",
+                acceptedAnswers: ["Surrounded"]
+            },
+            {
+                id: 17,
+                isSecret: false,
+                color: '#7c3aed',
+                original: "Since you’ve experienced failure, do people become more cautious or more willing to take risks?",
+                bracketed: "Since you’ve experienced",
+                remainingText: "failure, do people become more cautious or more willing to take risks?",
+                acceptedAnswers: ["Having experienced"]
+            },
+            {
+                id: 18,
+                isSecret: false,
+                color: '#ea580c',
+                original: "If we compare us with previous generations, are people today better equipped to deal with life’s challenges?",
+                bracketed: "If we compare us",
+                remainingText: "with previous generations, are people today better equipped to deal with life’s challenges?",
+                acceptedAnswers: ["Compared"]
+            },
+            {
+                id: 19,
+                isSecret: false,
+                color: '#65a30d',
+                original: "As you’ve been raised in [X] culture, how much do you think your values are shaped by it?",
+                bracketed: "As you’ve been raised",
+                remainingText: "in [X] culture, how much do you think your values are shaped by it?",
+                acceptedAnswers: ["Having been raised"]
+            },
+            {
+                id: 20,
+                isSecret: false,
+                color: '#0891b2',
+                original: "Since we know how unpredictable the future is, do you prefer making strict long-term plans or taking life one day at a time?",
+                bracketed: "Since we know",
+                remainingText: "how unpredictable the future is, do you prefer making strict long-term plans or taking life one day at a time?",
+                acceptedAnswers: ["Knowing"]
+            },
+            // Secret Riddle Questions (S1 - S5)
+            {
+                id: "S1",
+                isSecret: true,
+                color: '#fbbf24',
+                original: "(Walk) through the forest, a man finds a cabin. Inside the cabin there is a dead man hanging from the ceiling and a puddle of water on the floor. How did the man die?",
+                bracketed: "(Walk)",
+                remainingText: "through the forest, a man finds a cabin. Inside the cabin there is a dead man hanging from the ceiling and a puddle of water on the floor. How did the man die?",
+                verbHint: "(Walk)",
+                acceptedAnswers: ["Walking"],
+                riddleAnswer: "He stood on a block of ice that later melted."
+            },
+            {
+                id: "S2",
+                isSecret: true,
+                color: '#f59e0b',
+                original: "(Overtake) the person in second place in a race, what position are you in?",
+                bracketed: "(Overtake)",
+                remainingText: "the person in second place in a race, what position are you in?",
+                verbHint: "(Overtake)",
+                acceptedAnswers: ["Having overtaken", "Overtaking"],
+                riddleAnswer: "Second place."
+            },
+            {
+                id: "S3",
+                isSecret: true,
+                color: '#d97706',
+                original: "(Pass) from father to son but never belonging to either of them, what could it be?",
+                bracketed: "(Pass)",
+                remainingText: "from father to son but never belonging to either of them, what could it be?",
+                verbHint: "(Pass)",
+                acceptedAnswers: ["Passed", "Being passed"],
+                riddleAnswer: "A family name."
+            },
+            {
+                id: "S4",
+                isSecret: true,
+                color: '#f59e0b',
+                original: "(Finish) his dinner, a man turns off the light and dies. Why?",
+                bracketed: "(Finish)",
+                remainingText: "his dinner, a man turns off the light and dies. Why?",
+                verbHint: "(Finish)",
+                acceptedAnswers: ["Having finished", "Finishing"],
+                riddleAnswer: "He is a lighthouse keeper."
+            },
+            {
+                id: "S5",
+                isSecret: true,
+                color: '#fbbf24',
+                original: "(Never / be) alive, I can still die. What am I?",
+                bracketed: "(Never / be)",
+                remainingText: "alive, I can still die. What am I?",
+                verbHint: "(Never / be)",
+                acceptedAnswers: ["Having never been", "Never being", "Never having been"],
+                riddleAnswer: "A battery / a fire / a conversation"
+            }
+        ];
+
+        let activeQuestionPool = [...INITIAL_QUESTION_POOL];
+        let currentQuestion = null;
+        let isSpinning = false;
+
+        // --- CANVAS PHYSICS ENGINE FOR LOTTERY MACHINE ---
+        const canvas = document.getElementById('raffleCanvas');
+        const ctx = canvas.getContext('2d');
+        const SPHERE_RADIUS = 135;
+        const CENTER = { x: canvas.width / 2, y: canvas.height / 2 };
+        
+        let balls = [];
+
+        class Ball {
+            constructor(q) {
+                this.id = q.id;
+                this.color = q.color;
+                this.isSecret = q.isSecret;
+                this.radius = q.isSecret ? 16 : 14;
+                
+                // Random position inside sphere
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * (SPHERE_RADIUS - 35);
+                this.x = CENTER.x + r * Math.cos(angle);
+                this.y = CENTER.y + r * Math.sin(angle);
+                
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+            }
+
+            update(speedMultiplier) {
+                // Apply subtle gravity and current spin speed
+                this.vy += 0.15;
+                this.x += this.vx * speedMultiplier;
+                this.y += this.vy * speedMultiplier;
+
+                // Boundary containment (sphere collision)
+                const dx = this.x - CENTER.x;
+                const dy = this.y - CENTER.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist + this.radius > SPHERE_RADIUS) {
+                    const angle = Math.atan2(dy, dx);
+                    this.x = CENTER.x + (SPHERE_RADIUS - this.radius) * Math.cos(angle);
+                    this.y = CENTER.y + (SPHERE_RADIUS - this.radius) * Math.sin(angle);
+
+                    // Bounce velocity reversal
+                    const normalX = dx / dist;
+                    const normalY = dy / dist;
+                    const dot = this.vx * normalX + this.vy * normalY;
+
+                    this.vx = (this.vx - 2 * dot * normalX) * 0.85;
+                    this.vy = (this.vy - 2 * dot * normalY) * 0.85;
+
+                    // Add random turbulent mix during high speed spin
+                    if (speedMultiplier > 1.5) {
+                        this.vx += (Math.random() - 0.5) * 6;
+                        this.vy += (Math.random() - 0.5) * 6;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                // Color Gradient / Glow
+                const grad = ctx.createRadialGradient(
+                    this.x - this.radius * 0.3, 
+                    this.y - this.radius * 0.3, 
+                    this.radius * 0.1, 
+                    this.x, 
+                    this.y, 
+                    this.radius
+                );
+
+                if (this.isSecret) {
+                    grad.addColorStop(0, '#fffbeb');
+                    grad.addColorStop(0.5, '#fbbf24');
+                    grad.addColorStop(1, '#b45309');
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 12;
+                } else {
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.4, this.color);
+                    grad.addColorStop(1, '#0f172a');
+                }
+
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.stroke();
+
+                // Ball Text/Number Label
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = this.isSecret ? '#000000' : '#ffffff';
+                ctx.font = `bold ${this.isSecret ? '10px' : '11px'} Inter, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.id, this.x, this.y);
+
+                ctx.restore();
+            }
+        }
+
+        function initBalls() {
+            balls = activeQuestionPool.map(q => new Ball(q));
+            updateCountDisplay();
+        }
+
+        function updateCountDisplay() {
+            document.getElementById('remainingCount').innerText = `Remaining Questions: ${activeQuestionPool.length} / 25`;
+        }
+
+        let animationSpeed = 1.0;
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Render internal drum mixer blades subtly
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(CENTER.x, CENTER.y, SPHERE_RADIUS - 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+            balls.forEach(ball => {
+                ball.update(animationSpeed);
+                ball.draw();
+            });
+
+            requestAnimationFrame(animateCanvas);
+        }
+
+        // --- RAFFLE SPIN CONTROLLER ---
+        function spinRaffle() {
+            if (isSpinning || activeQuestionPool.length === 0) return;
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            
+            // Hide question card if showing
+            const card = document.getElementById('questionCard');
+            card.classList.add('hidden');
+            card.classList.remove('flex');
+
+            // High speed turbulent agitation for 1.5s
+            let duration = 1500;
+            let startTime = performance.now();
+
+            function turbulenceLoop(now) {
+                let elapsed = now - startTime;
+                if (elapsed < duration) {
+                    animationSpeed = 4.5;
+                    requestAnimationFrame(turbulenceLoop);
+                } else {
+                    animationSpeed = 1.0;
+                    isSpinning = false;
+                    document.getElementById('spinBtn').disabled = false;
+                    selectWinnerQuestion();
+                }
+            }
+            requestAnimationFrame(turbulenceLoop);
+        }
+
+        function selectWinnerQuestion() {
+            const randomIndex = Math.floor(Math.random() * activeQuestionPool.length);
+            currentQuestion = activeQuestionPool[randomIndex];
+            displayQuestionCard(currentQuestion);
+        }
+
+        // --- QUESTION CARD DISPLAY ---
+        function displayQuestionCard(q) {
+            const card = document.getElementById('questionCard');
+            const badge = document.getElementById('cardBallBadge');
+            const title = document.getElementById('questionTitle');
+            const origBox = document.getElementById('originalSentenceBox');
+            const prompt = document.getElementById('questionPrompt');
+            const remainingSpan = document.getElementById('remainingSentenceText');
+            const secretVerbHint = document.getElementById('secretVerbHint');
+            const input = document.getElementById('userAnswerInput');
+            const feedback = document.getElementById('feedbackContainer');
+            const discussion = document.getElementById('discussionSection');
+            const riddleSec = document.getElementById('riddleAnswerSection');
+            const riddleAnsText = document.getElementById('riddleAnswerText');
+            const toggleRiddleBtn = document.getElementById('toggleRiddleBtn');
+            const instructionLabel = document.getElementById('instructionLabel');
+
+            card.classList.remove('hidden');
+            card.classList.add('flex');
+            
+            badge.style.backgroundColor = q.color;
+            if (q.isSecret) {
+                badge.classList.add('secret-glowing-ball');
+                title.innerText = `Secret Question #${q.id}`;
+                instructionLabel.innerText = "Complete the participle form for the verb in brackets:";
+                
+                // Show verb hint right before the input box
+                secretVerbHint.innerText = q.verbHint;
+                secretVerbHint.classList.remove('hidden');
+
+                // Hide duplicate original sentence box for secret questions
+                origBox.classList.add('hidden');
+            } else {
+                badge.classList.remove('secret-glowing-ball');
+                title.innerText = `Question #${q.id}`;
+                instructionLabel.innerText = "Paraphrase the bold part into a participle / participle clause";
+                
+                // Hide secret verb hint
+                secretVerbHint.classList.add('hidden');
+
+                // Show original sentence box for standard questions
+                origBox.classList.remove('hidden');
+                
+                // Format original sentence highlighting bracketed clause
+                const highlightedOriginal = q.original.replace(
+                    q.bracketed, 
+                    `<span class="underline decoration-amber-400 decoration-2 font-bold text-amber-300">${q.bracketed}</span>`
+                );
+                prompt.innerHTML = highlightedOriginal;
+            }
+
+            badge.innerText = q.id;
+            remainingSpan.innerText = q.remainingText;
+            
+            // Reset Input & UI State
+            input.value = "";
+            input.disabled = false;
+            adjustInputWidth();
+
+            feedback.className = "hidden rounded-xl p-3 text-center text-sm font-semibold transition-all";
+            feedback.innerText = "";
+
+            discussion.classList.add('hidden');
+            discussion.classList.remove('flex');
+
+            if (q.isSecret) {
+                riddleSec.classList.remove('hidden');
+                riddleSec.classList.add('flex');
+                riddleAnsText.innerText = q.riddleAnswer;
+                riddleAnsText.classList.add('hidden');
+                toggleRiddleBtn.innerText = "Show Answer";
+            } else {
+                riddleSec.classList.add('hidden');
+                riddleSec.classList.remove('flex');
+            }
+
+            input.focus();
+        }
+
+        // --- INLINE INPUT EXPANSION LOGIC ---
+        function adjustInputWidth() {
+            const input = document.getElementById('userAnswerInput');
+            const mirror = document.getElementById('textWidthMirror');
+            
+            mirror.innerText = input.value || input.placeholder || "...";
+            const calculatedWidth = mirror.offsetWidth + 24;
+            input.style.width = `${Math.max(calculatedWidth, 48)}px`;
+        }
+
+        // --- ANSWER CHECKING LOGIC ---
+        function checkAnswer() {
+            if (!currentQuestion) return;
+
+            const input = document.getElementById('userAnswerInput');
+            const feedback = document.getElementById('feedbackContainer');
+            const discussion = document.getElementById('discussionSection');
+
+            const rawVal = input.value.trim();
+            const normalizedVal = rawVal.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+
+            const isCorrect = currentQuestion.acceptedAnswers.some(ans => {
+                const normalizedAns = ans.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+                return normalizedVal === normalizedAns;
+            });
+
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                feedback.className = "rounded-xl p-3 text-center text-sm font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                feedback.innerText = "Correct! You got it right.";
+                
+                input.disabled = true;
+                discussion.classList.remove('hidden');
+                discussion.classList.add('flex');
+            } else {
+                feedback.className = "rounded-xl p-3 text-center text-sm font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                feedback.innerText = "Not quite! Try another participle variant.";
+            }
+        }
+
+        function toggleRiddleAnswer() {
+            const riddleAnsText = document.getElementById('riddleAnswerText');
+            const toggleBtn = document.getElementById('toggleRiddleBtn');
+
+            if (riddleAnsText.classList.contains('hidden')) {
+                riddleAnsText.classList.remove('hidden');
+                toggleBtn.innerText = "Hide Answer";
+            } else {
+                riddleAnsText.classList.add('hidden');
+                toggleBtn.innerText = "Show Answer";
+            }
+        }
+
+        // --- ELIMINATE QUESTION & PROCEED ---
+        function proceedAndEliminate() {
+            if (!currentQuestion) return;
+
+            // Remove drawn question from pool permanently
+            activeQuestionPool = activeQuestionPool.filter(q => q.id !== currentQuestion.id);
+            currentQuestion = null;
+
+            // Re-render machine canvas balls
+            initBalls();
+
+            // Hide Question Card
+            const card = document.getElementById('questionCard');
+            card.classList.add('hidden');
+            card.classList.remove('flex');
+
+            if (activeQuestionPool.length === 0) {
+                document.getElementById('remainingCount').innerText = "All questions completed!";
+                document.getElementById('spinBtn').disabled = true;
+            }
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            initBalls();
+            animateCanvas();
+        };
+    </script>
+</body>
+</html>
